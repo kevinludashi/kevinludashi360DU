@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>360度全景图查看器</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/pannellum@2.5.6/build/pannellum.css"/>
+    <style>
+        body, html {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+        }
+        #panorama {
+            width: 100%;
+            height: 100%;
+        }
+        #fullscreenButton {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            z-index: 1000;
+            cursor: pointer;
+            padding: 10px;
+            background: rgba(255, 255, 255, 0.5);
+            border-radius: 5px;
+        }
+        /* 使用flexbox让文件选择和链接输入框并排显示 */
+        #inputsContainer {
+            position: absolute;
+            top: 10px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            gap: 10px; /* 控制输入框之间的间距 */
+            z-index: 1000;
+        }
+        #urlInput, #fileInput {
+            padding: 5px;
+            font-size: 14px;
+            background: rgba(255, 255, 255, 0.7);
+            border: 1px solid #ccc;
+            border-radius: 5px;
+        }
+        #fileInput {
+            cursor: pointer;
+        }
+		
+		/* 媒体查询 - 在小屏幕上，等比例缩小 */
+		@media (max-width: 600px) {
+		    #inputsContainer {
+		        width:80%; /* 容器宽度占满整个屏幕 */
+		    }
+		    #urlInput, #fileInput {
+		        max-width: 35%; /* 限制输入框和文件框的最大宽度 */
+		    }
+		}
+
+        /* 水印样式 */
+        #watermark {
+            position: absolute;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 18px;
+            color: rgba(255, 255, 255, 0.6);
+            font-family: Arial, sans-serif;
+            z-index: 999;
+            pointer-events: none; /* 禁止水印与用户交互 */
+            white-space: nowrap; /* 防止水印换行 */
+            max-width: 100%; /* 限制水印不超出屏幕 */
+        }
+        
+        /* 媒体查询 - 在小屏幕上缩小水印字体 */
+        @media (max-width: 600px) {
+            #watermark {
+                font-size: 14px; /* 缩小字体 */
+            }
+        }
+    </style>
+</head>
+<body>
+    <button id="fullscreenButton">全屏</button>
+
+    <!-- 包裹文件选择框和链接输入框的容器 -->
+    <div id="inputsContainer">
+        <input type="file" id="fileInput" accept="image/jpg, image/jpeg, image/png" />
+        <input type="text" id="urlInput" placeholder="输入网络图片链接..." />
+    </div>
+
+    <div id="panorama"></div>
+
+    <!-- 水印 -->
+    <div id="watermark">KEVINLUDASHI的360°全景图查看工具</div>
+
+    <script src="https://cdn.jsdelivr.net/npm/pannellum@2.5.6/build/pannellum.js"></script>
+    <script>
+        var viewer;
+
+        // 初始化Pannellum查看器
+        function initializeViewer(imageUrl) {
+            if (viewer) {
+                viewer.destroy();
+            }
+            viewer = pannellum.viewer('panorama', {
+                "type": "equirectangular",
+                "panorama": imageUrl,
+                "autoLoad": true,
+                "gyroscope": true, // 启用陀螺仪
+                "showFullscreenCtrl": false // 隐藏Pannellum默认的全屏控制
+            });
+        }
+
+        // 上传本地图片
+        document.getElementById('fileInput').addEventListener('change', function(event) {
+            var file = event.target.files[0];
+            if (file) {
+                var reader = new FileReader();
+                reader.onload = function(e) {
+                    initializeViewer(e.target.result);
+                    // 选择本地文件后隐藏链接输入框，显示文件选择框
+                    document.getElementById('urlInput').style.display = 'none';
+                };
+                reader.readAsDataURL(file); // 读取文件内容
+            }
+        });
+
+        // 输入网络图片链接
+        document.getElementById('urlInput').addEventListener('input', function(event) {
+            var url = event.target.value.trim();
+            if (url) {
+                // 用户输入链接时隐藏文件选择框
+                document.getElementById('fileInput').style.display = 'none';
+                initializeViewer(url);
+            } else {
+                // 如果链接为空，显示文件选择框
+                document.getElementById('fileInput').style.display = 'inline-block';
+            }
+        });
+
+        // 全屏按钮事件
+        document.getElementById('fullscreenButton').addEventListener('click', function() {
+            var panoramaElement = document.getElementById('panorama');
+            if (!document.fullscreenElement) {
+                panoramaElement.requestFullscreen().catch(err => {
+                    alert(`Error attempting to enable full-screen mode: ${err.message} (${err.name})`);
+                });
+            } else {
+                document.exitFullscreen();
+            }
+        });
+
+        // 监听屏幕方向变化
+        window.addEventListener('orientationchange', function() {
+            if (viewer) {
+                viewer.resize();
+            }
+        });
+
+        // 监听窗口大小变化
+        window.addEventListener('resize', function() {
+            if (viewer) {
+                viewer.resize();
+            }
+        });
+    </script>
+</body>
+</html>
